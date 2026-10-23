@@ -1,0 +1,807 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>4-Point Coupler Curve Synthesis</title>
+<script src="https://cdn.plot.ly/plotly-2.32.0.min.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&family=DM+Sans:wght@400;500;700&display=swap" rel="stylesheet"/>
+<style>
+:root{
+  --bg:#0b0e13;--s1:#111520;--s2:#161b26;--s3:#1c2232;
+  --border:#232b3e;--border2:#2d3750;
+  --green:#1dbe87;--blue:#4a9eff;--red:#ff5757;--orange:#ffb340;--purple:#9d8dff;
+  --text:#dde3f0;--muted:#6b7a99;--dim:#8892a8;--r:10px;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;min-height:100vh}
+body::after{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;
+  background-image:radial-gradient(circle,rgba(74,158,255,.07) 1px,transparent 1px);
+  background-size:28px 28px;}
+#wrap{position:relative;z-index:1;max-width:1140px;margin:0 auto;padding:28px 18px 60px}
+header{margin-bottom:30px}
+.logo{font-size:1.7rem;font-weight:700;font-family:'IBM Plex Mono',monospace;letter-spacing:-.03em;
+  background:linear-gradient(100deg,var(--green),var(--blue));
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+.sub{font-size:.82rem;color:var(--muted);margin-top:5px;font-family:'IBM Plex Mono',monospace}
+.divider{height:1px;background:linear-gradient(90deg,var(--border2),transparent);margin:16px 0 24px}
+.decl{background:rgba(157,141,255,.06);border:1px solid rgba(157,141,255,.2);
+  border-radius:var(--r);padding:13px 16px;font-size:.78rem;color:var(--muted);
+  font-family:'IBM Plex Mono',monospace;line-height:1.65;margin-bottom:26px}
+.decl b{color:var(--purple)}
+.tabs{display:flex;gap:3px;background:var(--s1);border:1px solid var(--border);
+  border-radius:var(--r);padding:4px;margin-bottom:22px}
+.tab{flex:1;padding:9px 14px;border:none;background:transparent;color:var(--muted);
+  cursor:pointer;border-radius:7px;font-family:'DM Sans',sans-serif;font-weight:700;
+  font-size:.88rem;transition:all .18s}
+.tab.on{background:var(--s3);color:var(--text);box-shadow:0 1px 4px rgba(0,0,0,.5)}
+.tab:hover:not(.on){color:var(--text)}
+.panel{display:none}.panel.on{display:block}
+.card{background:var(--s1);border:1px solid var(--border);border-radius:var(--r);
+  padding:18px 20px;margin-bottom:18px}
+.card-title{font-size:.7rem;font-weight:700;letter-spacing:.12em;text-transform:uppercase;
+  color:var(--muted);margin-bottom:14px;font-family:'IBM Plex Mono',monospace}
+.info{background:rgba(74,158,255,.07);border:1px solid rgba(74,158,255,.25);
+  border-radius:var(--r);padding:13px 16px;font-size:.82rem;color:var(--dim);
+  line-height:1.65;margin-bottom:18px}
+.info b{color:var(--blue)}
+.pt-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
+@media(max-width:580px){.pt-grid{grid-template-columns:1fr 1fr}}
+.pt-card{background:var(--s2);border:1px solid var(--border);border-radius:8px;padding:12px}
+.pt-lbl{font-size:.68rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;
+  margin-bottom:9px;font-family:'IBM Plex Mono',monospace}
+.pt-lbl.l1{color:var(--red)}.pt-lbl.l2{color:var(--orange)}
+.pt-lbl.l3{color:var(--green)}.pt-lbl.l4{color:var(--blue)}
+.frow{display:flex;align-items:center;gap:6px;margin-top:5px}
+.frow span{font-size:.7rem;color:var(--muted);width:12px;font-family:'IBM Plex Mono',monospace}
+.frow input{flex:1;background:var(--bg);border:1px solid var(--border);border-radius:5px;
+  padding:5px 8px;color:var(--text);font-size:.82rem;font-family:'IBM Plex Mono',monospace;
+  outline:none;transition:border-color .15s;width:100%}
+.frow input:focus{border-color:var(--green)}
+.btn{padding:9px 20px;border:none;border-radius:7px;cursor:pointer;
+  font-family:'DM Sans',sans-serif;font-weight:700;font-size:.85rem;
+  letter-spacing:.02em;transition:all .16s;display:inline-flex;align-items:center;gap:7px}
+.btn-p{background:var(--green);color:#0b0e13}
+.btn-p:hover{filter:brightness(1.1);transform:translateY(-1px)}
+.btn-s{background:var(--s2);color:var(--text);border:1px solid var(--border)}
+.btn-s:hover{border-color:var(--blue);color:var(--blue)}
+.btn:disabled{opacity:.4;cursor:not-allowed;transform:none!important;filter:none!important}
+.brow{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-top:4px}
+.prog-wrap{margin:12px 0;display:none}
+.prog-wrap progress{width:100%;height:5px;border-radius:3px;appearance:none}
+.prog-wrap progress::-webkit-progress-bar{background:var(--border);border-radius:3px}
+.prog-wrap progress::-webkit-progress-value{background:var(--green);border-radius:3px;transition:width .12s}
+.prog-txt{font-size:.72rem;color:var(--muted);margin-top:4px;font-family:'IBM Plex Mono',monospace}
+.msg{padding:10px 14px;border-radius:7px;font-size:.82rem;margin:10px 0;line-height:1.5}
+.msg-e{background:rgba(255,87,87,.09);border:1px solid rgba(255,87,87,.3);color:#ff8080}
+.msg-ok{background:rgba(29,190,135,.09);border:1px solid rgba(29,190,135,.3);color:#3ddba8}
+.msg-w{background:rgba(255,179,64,.09);border:1px solid rgba(255,179,64,.3);color:#ffcc70}
+.metrics{display:grid;grid-template-columns:repeat(5,1fr);gap:9px;margin:14px 0}
+@media(max-width:680px){.metrics{grid-template-columns:repeat(3,1fr)}}
+.met{background:var(--s2);border:1px solid var(--border);border-radius:8px;padding:10px 12px;text-align:center}
+.met-l{font-size:.64rem;color:var(--muted);text-transform:uppercase;letter-spacing:.09em;
+  font-family:'IBM Plex Mono',monospace;margin-bottom:4px}
+.met-v{font-size:1rem;font-weight:700;font-family:'IBM Plex Mono',monospace}
+select{background:var(--s2);border:1px solid var(--border);border-radius:7px;
+  padding:8px 11px;color:var(--text);font-family:'IBM Plex Mono',monospace;
+  font-size:.8rem;outline:none;cursor:pointer;width:100%}
+select:focus{border-color:var(--blue)}
+.sl-grid{display:grid;grid-template-columns:1fr 1fr;gap:13px;margin:12px 0}
+@media(max-width:560px){.sl-grid{grid-template-columns:1fr}}
+.sl-g label{font-size:.72rem;color:var(--dim);display:flex;justify-content:space-between;
+  margin-bottom:5px;font-family:'IBM Plex Mono',monospace}
+.sl-g input[type=range]{width:100%;accent-color:var(--green);cursor:pointer}
+.br-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:9px;margin:10px 0}
+@media(max-width:580px){.br-grid{grid-template-columns:1fr 1fr}}
+.br-g label{font-size:.7rem;color:var(--muted);display:block;margin-bottom:4px;
+  font-family:'IBM Plex Mono',monospace}
+.plot-box{background:var(--s2);border:1px solid var(--border);border-radius:var(--r);
+  overflow:hidden;margin:12px 0;min-height:440px}
+.anim-ctrl-row{display:flex;gap:14px;flex-wrap:wrap;align-items:flex-end;
+  background:var(--s2);border:1px solid var(--border);border-radius:var(--r);
+  padding:14px 16px;margin-bottom:10px}
+.actl{flex:1;min-width:140px}
+.actl label{font-size:.7rem;color:var(--muted);display:flex;justify-content:space-between;
+  margin-bottom:5px;font-family:'IBM Plex Mono',monospace}
+.vtbl{width:100%;border-collapse:collapse;font-size:.8rem;
+  font-family:'IBM Plex Mono',monospace;margin-top:10px}
+.vtbl th{text-align:left;padding:7px 12px;color:var(--muted);border-bottom:1px solid var(--border);
+  font-size:.67rem;text-transform:uppercase;letter-spacing:.08em}
+.vtbl td{padding:7px 12px;border-bottom:1px solid rgba(35,43,62,.5)}
+.vtbl tr:last-child td{border-bottom:none}
+.ok{color:var(--green)}.fail{color:var(--red)}
+details{background:var(--s2);border:1px solid var(--border);border-radius:8px;margin:12px 0;overflow:hidden}
+details summary{padding:11px 15px;cursor:pointer;font-size:.82rem;color:var(--dim);
+  font-weight:600;list-style:none;display:flex;align-items:center;gap:7px;user-select:none}
+details summary::before{content:'▶';font-size:.6rem;transition:transform .2s;color:var(--muted)}
+details[open] summary::before{transform:rotate(90deg)}
+details summary::-webkit-details-marker{display:none}
+.exp-body{padding:4px 16px 16px;font-size:.81rem;color:var(--dim);line-height:1.72;
+  display:flex;flex-direction:column;gap:9px}
+</style>
+</head>
+<body>
+<div id="wrap">
+  <header>
+    <div class="logo">Coupler Curve Synthesis</div>
+    <div class="sub">4-Bar Mechanism · Numerical (exact) + Graphical (Burmester) · Runs entirely in browser</div>
+  </header>
+  <div class="divider"></div>
+  <div class="decl">
+    <b>AI Assistance Declaration:</b> Some parts of this project were developed with the help of AI tools
+    (ChatGPT, Claude). AI was used for debugging/fixing errors and improving UI layout and input handling.
+    The core concepts, mechanism synthesis logic, and overall design were understood, implemented,
+    and verified independently.
+  </div>
+  <div class="tabs">
+    <button class="tab on" onclick="switchTab('num')">🔢 Numerical Synthesis (exact)</button>
+    <button class="tab" onclick="switchTab('gfx')">📐 Graphical Construction (educational)</button>
+  </div>
+
+  <!-- NUMERICAL -->
+  <div id="tab-num" class="panel on">
+    <div class="info">Finds an <b>exact</b> 4-bar mechanism whose coupler curve passes through all four precision points using numerical optimisation (Gauss-Newton / LM, 400 random restarts).</div>
+    <div class="card">
+      <div class="card-title">Precision Points</div>
+      <div class="pt-grid" id="num-pts"></div>
+    </div>
+    <div class="brow">
+      <button class="btn btn-p" id="num-btn" onclick="numSolve()">🔍 Synthesize Mechanism</button>
+    </div>
+    <div class="prog-wrap" id="num-prog">
+      <progress id="num-bar" value="0" max="100"></progress>
+      <div class="prog-txt" id="num-bar-txt">Searching…</div>
+    </div>
+    <div id="num-msg"></div>
+    <div id="num-sol-wrap" style="display:none;margin-top:12px">
+      <div class="card-title" style="margin-bottom:6px">Select Solution</div>
+      <select id="num-sel" onchange="numShow()"></select>
+    </div>
+    <div id="num-metrics" class="metrics" style="display:none"></div>
+    <div id="num-plot" class="plot-box" style="display:none"></div>
+    <div id="num-anim-wrap" style="display:none;margin-top:6px">
+      <div class="card">
+        <div class="card-title">Animation</div>
+        <div class="anim-ctrl-row">
+          <div class="actl">
+            <label>Speed ms/frame <span id="spd-lbl">20</span></label>
+            <input type="range" id="num-spd" min="8" max="120" value="20" step="4" oninput="document.getElementById('spd-lbl').textContent=this.value">
+          </div>
+          <div class="actl">
+            <label>Frames/rev <span id="nfr-lbl">360</span></label>
+            <input type="range" id="num-nfr" min="90" max="720" value="360" step="90" oninput="document.getElementById('nfr-lbl').textContent=this.value">
+          </div>
+          <button class="btn btn-p" onclick="numPlay()" id="num-play-btn">▶ Play</button>
+        </div>
+      </div>
+      <div id="num-anim-plot" class="plot-box" style="display:none"></div>
+      <div id="num-verify" style="display:none">
+        <div class="card-title" style="margin:10px 0 6px">Verification</div>
+        <table class="vtbl"><thead><tr><th>Point</th><th>Min dist from trace</th><th>Status</th></tr></thead>
+        <tbody id="num-vbody"></tbody></table>
+      </div>
+    </div>
+  </div>
+
+  <!-- GRAPHICAL -->
+  <div id="tab-gfx" class="panel">
+    <div class="info">
+      <b>Why the graphical method is approximate:</b> The Burmester method gives <i>exact</i> 3-position synthesis. With a 4th point, B₁ is from circumcenter(P₁,P₂,P₃) only, so B₄ may not lie on the rocker circle — this gap is the <b>closure error</b>. The Numerical tab solves all 4 simultaneously and is always exact.
+    </div>
+    <div class="card">
+      <div class="card-title">Precision Points</div>
+      <div class="pt-grid" id="gfx-pts"></div>
+    </div>
+    <div class="card">
+      <div class="card-title">Step 1 — Find Valid Starting Parameters</div>
+      <button class="btn btn-s" id="gfx-auto-btn" onclick="gfxAutoFind()">⚙️ Auto-find Valid Parameters</button>
+      <div id="gfx-auto-msg"></div>
+    </div>
+    <div class="card">
+      <div class="card-title">Step 2 — Adjust Sliders to Explore</div>
+      <div class="sl-grid">
+        <div class="sl-g"><label>HR on ⊥-bisector C1─C3 <span id="hr-lbl">3.00</span></label>
+          <input type="range" id="g-hr" min="-20" max="20" value="3" step="0.05" oninput="slLbl('hr-lbl',this.value);gfxUpdate()"></div>
+        <div class="sl-g"><label>R : dist HR→Aᵢ <span id="R-lbl">8.00</span></label>
+          <input type="range" id="g-R" min="0.5" max="35" value="8" step="0.05" oninput="slLbl('R-lbl',this.value);gfxUpdate()"></div>
+        <div class="sl-g"><label>r : dist Aᵢ→Cᵢ <span id="r-lbl">3.00</span></label>
+          <input type="range" id="g-r" min="0.1" max="20" value="3" step="0.05" oninput="slLbl('r-lbl',this.value);gfxUpdate()"></div>
+        <div class="sl-g"><label>HC on ⊥-bisector A1─A3 <span id="hc-lbl">2.00</span></label>
+          <input type="range" id="g-hc" min="-20" max="20" value="2" step="0.05" oninput="slLbl('hc-lbl',this.value);gfxUpdate()"></div>
+      </div>
+      <div class="br-grid">
+        <div class="br-g"><label>A1 branch</label><select id="g-bA1" onchange="gfxUpdate()"><option value="0">0</option><option value="1">1</option></select></div>
+        <div class="br-g"><label>A3 branch</label><select id="g-bA3" onchange="gfxUpdate()"><option value="0">0</option><option value="1">1</option></select></div>
+        <div class="br-g"><label>A2 branch</label><select id="g-bA2" onchange="gfxUpdate()"><option value="0">0</option><option value="1">1</option></select></div>
+        <div class="br-g"><label>A4 branch</label><select id="g-bA4" onchange="gfxUpdate()"><option value="0">0</option><option value="1">1</option></select></div>
+      </div>
+    </div>
+    <div id="gfx-msg"></div>
+    <div id="gfx-metrics" class="metrics" style="display:none"></div>
+    <details id="gfx-steps" style="display:none">
+      <summary>📖 Construction Steps Explained</summary>
+      <div class="exp-body" id="gfx-steps-body"></div>
+    </details>
+    <div id="gfx-plot" class="plot-box" style="display:none"></div>
+    <div id="gfx-anim-wrap" style="display:none;margin-top:6px">
+      <div class="card">
+        <div class="card-title">Approximate Motion Preview</div>
+        <div class="msg msg-w" style="margin-bottom:10px">⚠️ Motion is approximate — graphical method does not exactly satisfy all 4 points.</div>
+        <button class="btn btn-s" onclick="gfxPlay()" id="gfx-play-btn">▶ Preview Motion</button>
+      </div>
+      <div id="gfx-anim-plot" class="plot-box" style="display:none"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+'use strict';
+// ═══════════════════════════════════════════════════════════
+// MATH CORE — all ported from the original Python
+// ═══════════════════════════════════════════════════════════
+const PI=Math.PI,cos=Math.cos,sin=Math.sin,sqrt=Math.sqrt,abs=Math.abs,atan2=Math.atan2;
+
+function v(x,y){return{x,y}}
+function vadd(a,b){return v(a.x+b.x,a.y+b.y)}
+function vsub(a,b){return v(a.x-b.x,a.y-b.y)}
+function vscl(a,s){return v(a.x*s,a.y*s)}
+function vnorm(a){return sqrt(a.x*a.x+a.y*a.y)}
+function vdot(a,b){return a.x*b.x+a.y*b.y}
+function vunit(a){const n=vnorm(a);return n<1e-12?v(0,0):v(a.x/n,a.y/n)}
+function vperp(a){return v(-a.y,a.x)}
+function rot(t,p){const c=cos(t),s=sin(t);return v(c*p.x-s*p.y,s*p.x+c*p.y)}
+
+function circleIsect(c1,r1,c2,r2){
+  const dv=vsub(c2,c1),d=vnorm(dv);
+  if(d<1e-12||d>r1+r2+1e-9||d<abs(r1-r2)-1e-9)return[];
+  const a=(r1*r1-r2*r2+d*d)/(2*d);
+  let h2=r1*r1-a*a;if(h2<-1e-9)return[];
+  const h=sqrt(Math.max(h2,0)),u=vunit(dv),p=vadd(c1,vscl(u,a)),tv=vperp(u);
+  if(h<1e-9)return[p];
+  return[vadd(p,vscl(tv,h)),vsub(p,vscl(tv,h))];
+}
+function circleIsect1(c1,r1,c2,r2,branch){
+  const pts=circleIsect(c1,r1,c2,r2);
+  return pts.length?pts[branch%pts.length]:null;
+}
+function perpBis(p1,p2){
+  const mid=vscl(vadd(p1,p2),.5),d=vsub(p2,p1);
+  return{mid,dir:vunit(vperp(d))};
+}
+function circumcenter(a,b,c){
+  const D=2*(a.x*(b.y-c.y)+b.x*(c.y-a.y)+c.x*(a.y-b.y));
+  if(abs(D)<1e-9)return null;
+  const na=vdot(a,a),nb=vdot(b,b),nc=vdot(c,c);
+  return v((na*(b.y-c.y)+nb*(c.y-a.y)+nc*(a.y-b.y))/D,
+           (na*(c.x-b.x)+nb*(a.x-c.x)+nc*(b.x-a.x))/D);
+}
+
+// Gaussian elimination (Gauss-Jordan with partial pivoting)
+function gaussElim(A,b){
+  const n=A.length;
+  const M=[];
+  for(let i=0;i<n;i++){M.push([...A[i],b[i]]);}
+  for(let col=0;col<n;col++){
+    let maxR=col,maxV=abs(M[col][col]);
+    for(let r=col+1;r<n;r++){if(abs(M[r][col])>maxV){maxV=abs(M[r][col]);maxR=r;}}
+    if(maxR!==col){const tmp=M[col];M[col]=M[maxR];M[maxR]=tmp;}
+    if(abs(M[col][col])<1e-14)return null;
+    const piv=M[col][col];
+    for(let c=col;c<=n;c++)M[col][c]/=piv;
+    for(let r=0;r<n;r++){
+      if(r===col)continue;
+      const f=M[r][col];
+      for(let c=col;c<=n;c++)M[r][c]-=f*M[col][c];
+    }
+  }
+  return M.map(r=>r[n]);
+}
+
+// Residuals: 6-vector. x=[phi0..phi3, r, HCx,HCy, O4x,O4y, Bbx,Bby]
+function residuals(x,T){
+  const phis=x.slice(0,4),r=abs(x[4]);
+  const HC=v(x[5],x[6]),O4=v(x[7],x[8]),Bb=v(x[9],x[10]);
+  if(r<0.05||vnorm(Bb)<0.05)return new Array(6).fill(1e4);
+  const As=T.map((_,i)=>vsub(T[i],rot(phis[i],v(r,0))));
+  const Bs=As.map((A,i)=>vadd(A,rot(phis[i],Bb)));
+  const dA0=vnorm(vsub(As[0],HC)),dB0=vnorm(vsub(Bs[0],O4));
+  if(dA0<0.05||dB0<0.05)return new Array(6).fill(1e4);
+  const res=[];
+  for(let i=1;i<4;i++){
+    res.push(vnorm(vsub(As[i],HC))-dA0);
+    res.push(vnorm(vsub(Bs[i],O4))-dB0);
+  }
+  return res;
+}
+
+// Levenberg-Marquardt with correct finite-difference Jacobian
+// J is m x n matrix: J[i][j] = d(res_i)/d(x_j)
+function lmSolve(x0,T,maxIter,tol){
+  const n=x0.length, m=6, EPS=1e-7;
+  let x=[...x0], lam=1e-2;
+  const cost=r=>r.reduce((s,ri)=>s+ri*ri,0);
+
+  for(let iter=0;iter<maxIter;iter++){
+    const r=residuals(x,T), c=cost(r);
+    if(c<tol)return{x,cost:c};
+
+    // J[i][j] = d(res_i)/d(x_j)
+    const J=Array.from({length:m},()=>new Array(n).fill(0));
+    for(let j=0;j<n;j++){
+      const xp=[...x]; xp[j]+=EPS;
+      const rp=residuals(xp,T);
+      for(let i=0;i<m;i++) J[i][j]=(rp[i]-r[i])/EPS;
+    }
+
+    // JtJ[p][q] = sum_i J[i][p]*J[i][q]
+    const JtJ=Array.from({length:n},()=>new Array(n).fill(0));
+    for(let i=0;i<m;i++)
+      for(let p=0;p<n;p++)
+        for(let q=0;q<n;q++)
+          JtJ[p][q]+=J[i][p]*J[i][q];
+
+    // Jtr[p] = sum_i J[i][p]*r[i]
+    const Jtr=new Array(n).fill(0);
+    for(let i=0;i<m;i++)
+      for(let p=0;p<n;p++)
+        Jtr[p]+=J[i][p]*r[i];
+
+    // LM: (JtJ + lam*diag(JtJ + eps)) * delta = -Jtr
+    const Adamp=JtJ.map((row,p)=>row.map((val,q)=>p===q?val+lam*(val+1e-6):val));
+    const delta=gaussElim(Adamp,Jtr.map(val=>-val));
+    if(!delta){lam=Math.min(lam*10,1e8);continue;}
+
+    const xn=x.map((val,i)=>val+delta[i]);
+    const cn=cost(residuals(xn,T));
+    if(cn<c){
+      x=xn; lam=Math.max(lam*0.2,1e-10);
+      if(c-cn<tol*1e-3)break;
+    } else {
+      lam=Math.min(lam*8,1e8);
+    }
+  }
+  return{x,cost:cost(residuals(x,T))};
+}
+
+function simulateTrace(HC,O4,rc,rr,rab,phi0,Cb,A1,B1init,n){
+  const theta0=atan2(vsub(A1,HC).y,vsub(A1,HC).x);
+  let prevB={...B1init};const trace=[];
+  for(let i=0;i<n;i++){
+    const theta=theta0+2*PI*i/n;
+    const A=vadd(HC,v(rc*cos(theta),rc*sin(theta)));
+    const opts=circleIsect(O4,rr,A,rab);
+    if(!opts.length)continue;
+    const B=opts.reduce((best,o)=>vnorm(vsub(o,prevB))<vnorm(vsub(best,prevB))?o:best,opts[0]);
+    prevB={...B};
+    const phiAB=atan2(vsub(B,A).y,vsub(B,A).x);
+    trace.push(vadd(A,rot(phiAB-phi0,Cb)));
+  }
+  return trace;
+}
+
+// mulberry32 PRNG
+function mulberry32(seed){
+  let s=seed>>>0;
+  return()=>{s+=0x6D2B79F5;let t=s;t=Math.imul(t^t>>>15,t|1);t^=t+Math.imul(t^t>>>7,t|61);return((t^t>>>14)>>>0)/4294967296};
+}
+
+// Graphical construction
+function graphicalConstruct(targets,hr_t,R_val,r_val,hc_t,bA1,bA3,bA2,bA4){
+  const [C1,C2,C3,C4]=targets;
+  try{
+    const pb13=perpBis(C1,C3);
+    const HR=vadd(pb13.mid,vscl(pb13.dir,hr_t));
+    const A1=circleIsect1(HR,R_val,C1,r_val,bA1);
+    const A3=circleIsect1(HR,R_val,C3,r_val,bA3);
+    if(!A1||!A3)return{err:"A1/A3 not found — circles (HR,R) and (Ci,r) don't overlap. Try increasing R."};
+    const pbA=perpBis(A1,A3);
+    const HC=vadd(pbA.mid,vscl(pbA.dir,hc_t));
+    const rc=vnorm(vsub(A1,HC));
+    if(rc<0.1)return{err:"Degenerate: HC too close to midpoint of A1─A3."};
+    const A2=circleIsect1(HC,rc,C2,r_val,bA2);
+    const A4=circleIsect1(HC,rc,C4,r_val,bA4);
+    if(!A2)return{err:"A2 not found — crank circle and (C2,r) don't intersect."};
+    if(!A4)return{err:"A4 not found — crank circle and (C4,r) don't intersect."};
+    const As=[A1,A2,A3,A4];
+    const phi=As.map((A,i)=>atan2(vsub(targets[i],A).y,vsub(targets[i],A).x));
+    const P=As.map((A,i)=>vadd(A1,rot(phi[0]-phi[i],vsub(HR,A))));
+    const B1=circumcenter(P[0],P[1],P[2]);
+    if(!B1)return{err:"P1,P2,P3 collinear — degenerate. Try different slider values."};
+    if(vnorm(vsub(B1,A1))<0.1)return{err:"Degenerate: B1 coincides with A1."};
+    const Bs=As.map((A,i)=>vadd(A,rot(phi[i]-phi[0],vsub(B1,A1))));
+    const O4=circumcenter(Bs[0],Bs[1],Bs[2]);
+    if(!O4)return{err:"B1,B2,B3 collinear — O4 undefined."};
+    const rr=vnorm(vsub(Bs[0],O4));
+    return{ok:true,Cs:targets,As,Bs,HR,HC,O4,P,rc,r_val,rr,rab:vnorm(vsub(B1,A1)),
+      closureErr:abs(vnorm(vsub(Bs[3],O4))-rr)};
+  }catch(e){return{err:String(e)};}
+}
+
+function autoFindGraphical(targets){
+  const xs=targets.map(p=>p.x),ys=targets.map(p=>p.y);
+  const scale=Math.max(Math.max(...xs)-Math.min(...xs),Math.max(...ys)-Math.min(...ys))+2;
+  const rng=mulberry32(0);
+  let bestErr=1e9,best={hr:3,R:8,r:3,hc:2,br:[0,0,0,0]};
+  const branches=[[0,0,0,0],[0,1,0,0],[1,0,0,0],[1,1,0,0],[0,0,1,0],[0,1,1,0],[1,0,1,0],[0,1,1,1],[1,1,1,1]];
+  for(let i=0;i<5000;i++){
+    const hr=(rng()-.5)*2*scale,R=rng()*scale*1.3+scale*.2;
+    const r=rng()*scale*.6+.3,hc=(rng()-.5)*2*scale;
+    for(const br of branches){
+      const res=graphicalConstruct(targets,hr,R,r,hc,...br);
+      if(res.ok&&res.closureErr<bestErr){bestErr=res.closureErr;best={hr,R,r,hc,br};}
+    }
+  }
+  return{best,err:bestErr};
+}
+
+function buildFrames(p,targets,nFrames){
+  const {HC,O4,rc,rr,rab,phi0,Cb,B1init,As}=p;
+  const theta0=atan2(vsub(As[0],HC).y,vsub(As[0],HC).x);
+  let prevB={...B1init};const frames=[],tx=[],ty=[];
+  for(let i=0;i<nFrames;i++){
+    const theta=theta0+2*PI*i/nFrames;
+    const A=vadd(HC,v(rc*cos(theta),rc*sin(theta)));
+    const opts=circleIsect(O4,rr,A,rab);
+    if(!opts.length)continue;
+    const B=opts.reduce((bst,o)=>vnorm(vsub(o,prevB))<vnorm(vsub(bst,prevB))?o:bst,opts[0]);
+    prevB={...B};
+    const phiAB=atan2(vsub(B,A).y,vsub(B,A).x);
+    const C=vadd(A,rot(phiAB-phi0,Cb));
+    tx.push(C.x);ty.push(C.y);
+    frames.push({A,B,C,tx:[...tx],ty:[...ty]});
+  }
+  return{frames,tx,ty};
+}
+
+// ═══════════════════════════════════════════════════════════
+// UI
+// ═══════════════════════════════════════════════════════════
+const DEFS=[[-6,0],[-2,5],[2,5],[6,0]];
+const LCLS=['l1','l2','l3','l4'];
+
+function buildPts(cid,prefix){
+  const c=document.getElementById(cid);
+  ['C1','C2','C3','C4'].forEach((lbl,i)=>{
+    const d=DEFS[i];
+    c.innerHTML+=`<div class="pt-card">
+      <div class="pt-lbl ${LCLS[i]}">${lbl}</div>
+      <div class="frow"><span>x</span><input type="number" id="${prefix}_${lbl}_x" value="${d[0]}" step="0.1" ${prefix==='gfx'?'oninput="gfxUpdate()"':''}></div>
+      <div class="frow"><span>y</span><input type="number" id="${prefix}_${lbl}_y" value="${d[1]}" step="0.1" ${prefix==='gfx'?'oninput="gfxUpdate()"':''}></div>
+    </div>`;
+  });
+}
+buildPts('num-pts','num');
+buildPts('gfx-pts','gfx');
+
+function getTgts(prefix){
+  return['C1','C2','C3','C4'].map(l=>v(
+    parseFloat(document.getElementById(`${prefix}_${l}_x`).value)||0,
+    parseFloat(document.getElementById(`${prefix}_${l}_y`).value)||0
+  ));
+}
+function switchTab(t){
+  document.querySelectorAll('.tab').forEach((b,i)=>b.classList.toggle('on',['num','gfx'][i]===t));
+  document.querySelectorAll('.panel').forEach(p=>p.classList.remove('on'));
+  document.getElementById('tab-'+t).classList.add('on');
+}
+function slLbl(id,val){document.getElementById(id).textContent=parseFloat(val).toFixed(2)}
+function showMsg(id,cls,txt){document.getElementById(id).innerHTML=`<div class="msg msg-${cls}">${txt}</div>`}
+function clrMsg(id){document.getElementById(id).innerHTML=''}
+function showMets(id,items){
+  const el=document.getElementById(id);el.style.display='grid';
+  el.innerHTML=items.map(([l,val])=>`<div class="met"><div class="met-l">${l}</div><div class="met-v">${val}</div></div>`).join('');
+}
+function darkLayout(extra){
+  return Object.assign({
+    paper_bgcolor:'rgba(0,0,0,0)',plot_bgcolor:'rgba(22,27,38,.7)',
+    font:{color:'#dde3f0',family:"'IBM Plex Mono',monospace",size:11},
+    xaxis:{gridcolor:'#232b3e',zerolinecolor:'#2d3750',scaleanchor:'y',scaleratio:1},
+    yaxis:{gridcolor:'#232b3e',zerolinecolor:'#2d3750'},
+    legend:{bgcolor:'rgba(17,21,32,.85)',bordercolor:'#232b3e',borderwidth:1},
+    margin:{l:40,r:20,t:20,b:60},height:520,
+  },extra||{});
+}
+function rangeOf(pointArrays){
+  const all=pointArrays.flat().filter(Boolean);
+  const xs=all.map(p=>p.x),ys=all.map(p=>p.y);
+  const xc=(Math.max(...xs)+Math.min(...xs))/2,yc=(Math.max(...ys)+Math.min(...ys))/2;
+  const span=Math.max(Math.max(...xs)-Math.min(...xs),Math.max(...ys)-Math.min(...ys))/2;
+  return{xc,yc,span:span*.35+span+3};
+}
+function circle200(cx,cy,r){
+  return{x:Array.from({length:200},(_,i)=>cx+r*cos(2*PI*i/199)),
+         y:Array.from({length:200},(_,i)=>cy+r*sin(2*PI*i/199))};
+}
+
+// ── NUMERICAL ──
+let numSolutions=[],numSel=0;
+
+function numSolve(){
+  const btn=document.getElementById('num-btn');btn.disabled=true;
+  clrMsg('num-msg');
+  ['num-plot','num-anim-plot','num-verify','num-metrics','num-anim-wrap','num-sol-wrap'].forEach(id=>{
+    const el=document.getElementById(id);if(el)el.style.display='none';
+  });
+  const prog=document.getElementById('num-prog');
+  const bar=document.getElementById('num-bar');
+  const txt=document.getElementById('num-bar-txt');
+  prog.style.display='block';bar.value=0;
+
+  const targets=getTgts('num');
+  const nTrials=400;
+  const rng=mulberry32(0);
+  const good=[];
+  const xs=targets.map(p=>p.x),ys=targets.map(p=>p.y);
+  const scale=Math.max(Math.max(...xs)-Math.min(...xs),Math.max(...ys)-Math.min(...ys))*.8+2;
+  let trial=0;
+
+  function chunk(){
+    for(let k=0;k<20&&trial<nTrials;k++,trial++){
+      const sc=scale*1.5+rng()*scale;
+      const x0=[
+        (rng()-.5)*2*PI,(rng()-.5)*2*PI,(rng()-.5)*2*PI,(rng()-.5)*2*PI,
+        rng()*sc*.6+.5,
+        (rng()-.5)*2*sc,(rng()-.5)*2*sc,
+        (rng()-.5)*2*sc,(rng()-.5)*2*sc,
+        (rng()-.5)*sc,(rng()-.5)*sc
+      ];
+      const sol=lmSolve(x0,targets,700,1e-14);
+      if(sol.cost>1e-8)continue;
+      const x=sol.x,phis=x.slice(0,4),r=abs(x[4]);
+      const HC=v(x[5],x[6]),O4=v(x[7],x[8]),Bb=v(x[9],x[10]);
+      if(r<0.3||vnorm(Bb)<0.3)continue;
+      const As=targets.map((_,i)=>vsub(targets[i],rot(phis[i],v(r,0))));
+      const Bs=As.map((A,i)=>vadd(A,rot(phis[i],Bb)));
+      const rc=vnorm(vsub(As[0],HC)),rr=vnorm(vsub(Bs[0],O4));
+      const rab=vnorm(Bb),ground=vnorm(vsub(HC,O4));
+      const phi0=atan2(Bb.y,Bb.x),Cb=v(r,0);
+      const opts0=circleIsect(O4,rr,As[0],rab);
+      if(!opts0.length)continue;
+      let bestErr=1e9,bestB1=null;
+      for(const B1try of opts0){
+        const tr=simulateTrace(HC,O4,rc,rr,rab,phi0,Cb,As[0],B1try,360);
+        if(tr.length<340)continue;
+        const err=Math.max(...targets.map(T=>Math.min(...tr.map(p=>vnorm(vsub(p,T))))));
+        if(err<bestErr){bestErr=err;bestB1=B1try;}
+      }
+      if(bestErr>0.06||!bestB1)continue;
+      good.push({HC,O4,As,Bs,r,rc,rr,rab,ground,phi0,Cb,B1init:bestB1,err:bestErr});
+    }
+    const pct=Math.round(trial/nTrials*100);
+    bar.value=pct;txt.textContent=`Searching… ${pct}%  (${good.length} found so far)`;
+    if(trial<nTrials&&good.length<3){setTimeout(chunk,0);return;}
+    prog.style.display='none';
+    good.sort((a,b)=>a.err-b.err);
+    numSolutions=good;numSel=0;
+    if(!good.length){showMsg('num-msg','e','No mechanism found. Try different precision point positions.');}
+    else{
+      showMsg('num-msg','ok',`Found ${good.length} mechanism(s). ✓`);
+      buildSolSel();numShow();
+    }
+    btn.disabled=false;
+  }
+  setTimeout(chunk,0);
+}
+
+function buildSolSel(){
+  const wrap=document.getElementById('num-sol-wrap');
+  document.getElementById('num-sel').innerHTML=numSolutions.map((p,i)=>
+    `<option value="${i}">Solution ${i+1} — r_crank=${p.rc.toFixed(2)}  r_AB=${p.rab.toFixed(2)}  r_rocker=${p.rr.toFixed(2)}  err=${p.err.toFixed(4)}</option>`
+  ).join('');
+  wrap.style.display=numSolutions.length>1?'block':'none';
+}
+function numShow(){
+  numSel=parseInt(document.getElementById('num-sel').value)||0;
+  const p=numSolutions[numSel];
+  showMets('num-metrics',[
+    ['Crank |HC─A|',p.rc.toFixed(3)],['Coupler |A─C|',p.r.toFixed(3)],
+    ['Coupler |A─B|',p.rab.toFixed(3)],['Rocker |B─O4|',p.rr.toFixed(3)],
+    ['Ground |HC─O4|',p.ground.toFixed(3)]
+  ]);
+  drawNumStatic(p,getTgts('num'));
+  document.getElementById('num-anim-wrap').style.display='block';
+  document.getElementById('num-anim-plot').style.display='none';
+  document.getElementById('num-verify').style.display='none';
+}
+function drawNumStatic(p,targets){
+  const {HC,O4,As,Bs,rc,rr}=p;
+  const {xc,yc,span}=rangeOf([targets,As,Bs,[HC],[O4]]);
+  const tr=[];
+  const crc=circle200(HC.x,HC.y,rc),crr=circle200(O4.x,O4.y,rr);
+  tr.push({x:crc.x,y:crc.y,mode:'lines',line:{color:'rgba(29,190,135,.2)',width:1,dash:'dot'},name:'Crank circle'});
+  tr.push({x:crr.x,y:crr.y,mode:'lines',line:{color:'rgba(74,158,255,.2)',width:1,dash:'dot'},name:'Rocker circle'});
+  for(let i=0;i<4;i++){
+    const a=i===0?1:.3,sl=i===0;
+    const[Ai,Bi,Ci]=[As[i],Bs[i],targets[i]];
+    tr.push({x:[HC.x,Ai.x],y:[HC.y,Ai.y],mode:'lines',line:{color:`rgba(29,190,135,${a})`,width:sl?4:2},showlegend:sl,name:'Crank'});
+    tr.push({x:[Ai.x,Ci.x,Bi.x,Ai.x],y:[Ai.y,Ci.y,Bi.y,Ai.y],mode:'lines',fill:'toself',fillcolor:`rgba(157,141,255,${a*.15})`,line:{color:`rgba(157,141,255,${a})`,width:sl?4:2},showlegend:sl,name:'Coupler'});
+    tr.push({x:[Bi.x,O4.x],y:[Bi.y,O4.y],mode:'lines',line:{color:`rgba(74,158,255,${a})`,width:sl?4:2},showlegend:sl,name:'Rocker'});
+  }
+  tr.push({x:targets.map(t=>t.x),y:targets.map(t=>t.y),mode:'markers+text',text:['C1','C2','C3','C4'],textposition:'top center',marker:{size:14,color:'#ff5757',symbol:'x',line:{width:3}},name:'Precision pts'});
+  for(const[lbl,pt,clr]of[['HC',HC,'#1dbe87'],['O4',O4,'#4a9eff']])
+    tr.push({x:[pt.x],y:[pt.y],mode:'markers+text',text:[lbl],textposition:'bottom center',marker:{size:16,color:clr,symbol:'triangle-down'},name:lbl});
+  const el=document.getElementById('num-plot');el.style.display='block';
+  const lay=darkLayout();
+  lay.xaxis.range=[xc-span,xc+span];lay.yaxis.range=[yc-span,yc+span];
+  Plotly.react('num-plot',tr,lay,{responsive:true});
+}
+function numPlay(){
+  const btn=document.getElementById('num-play-btn');
+  btn.disabled=true;btn.textContent='⏳ Building…';
+  const p=numSolutions[numSel];
+  const targets=getTgts('num');
+  const spd=parseInt(document.getElementById('num-spd').value);
+  const nfr=parseInt(document.getElementById('num-nfr').value);
+  const{frames,tx,ty}=buildFrames(p,targets,nfr);
+  if(!frames.length){showMsg('num-msg','e','Mechanism cannot complete full rotation. Try another solution.');btn.disabled=false;btn.textContent='▶ Play';return;}
+  const{xc,yc,span}=rangeOf([targets,p.As,p.Bs,[p.HC],[p.O4]]);
+  const pf=frames.map((f,fi)=>({name:String(fi),data:[
+    {x:[p.HC.x,f.A.x],y:[p.HC.y,f.A.y],mode:'lines',line:{color:'#1dbe87',width:4},name:'Crank'},
+    {x:[f.A.x,f.C.x,f.B.x,f.A.x],y:[f.A.y,f.C.y,f.B.y,f.A.y],mode:'lines',fill:'toself',fillcolor:'rgba(157,141,255,.15)',line:{color:'#9d8dff',width:4},name:'Coupler'},
+    {x:[f.B.x,p.O4.x],y:[f.B.y,p.O4.y],mode:'lines',line:{color:'#4a9eff',width:4},name:'Rocker'},
+    {x:f.tx,y:f.ty,mode:'lines',line:{color:'rgba(255,179,64,.9)',width:2},name:'Trace'},
+    {x:targets.map(t=>t.x),y:targets.map(t=>t.y),mode:'markers+text',text:['C1','C2','C3','C4'],textposition:'top center',marker:{size:13,color:'#ff5757',symbol:'x',line:{width:3}},name:'Precision pts'},
+    {x:[f.A.x,f.B.x,f.C.x],y:[f.A.y,f.B.y,f.C.y],mode:'markers+text',text:['A','B','C'],textposition:'top center',marker:{size:9,color:['#1dbe87','#4a9eff','#ff5757']},showlegend:false},
+  ]}));
+  const el=document.getElementById('num-anim-plot');el.style.display='block';
+  const lay=darkLayout({height:600,
+    xaxis:{gridcolor:'#232b3e',zerolinecolor:'#2d3750',scaleanchor:'y',scaleratio:1,range:[xc-span,xc+span]},
+    yaxis:{gridcolor:'#232b3e',zerolinecolor:'#2d3750',range:[yc-span,yc+span]},
+    updatemenus:[{type:'buttons',showactive:false,y:1.08,x:.5,xanchor:'center',buttons:[
+      {label:'▶ Play',method:'animate',args:[null,{frame:{duration:spd,redraw:true},fromcurrent:true,mode:'immediate'}]},
+      {label:'⏸ Pause',method:'animate',args:[[null],{frame:{duration:0,redraw:false},mode:'immediate'}]}
+    ]}],
+    sliders:[{steps:pf.map((_,i)=>({method:'animate',args:[[String(i)],{mode:'immediate',frame:{duration:0,redraw:true}}],label:''})),transition:{duration:0},x:.05,y:0,len:.9,currentvalue:{visible:false}}]
+  });
+  Plotly.react('num-anim-plot',pf[0].data,lay,{responsive:true});
+  Plotly.addFrames('num-anim-plot',pf);
+  // verify
+  const ptsTr=frames.map(f=>f.C);
+  document.getElementById('num-vbody').innerHTML=targets.map((T,i)=>{
+    const d=Math.min(...ptsTr.map(p=>vnorm(vsub(p,T))));
+    return`<tr><td>C${i+1}</td><td>${d.toFixed(5)}</td><td class="${d<0.1?'ok':'fail'}">${d<0.1?'✓':'✗'}</td></tr>`;
+  }).join('');
+  document.getElementById('num-verify').style.display='block';
+  btn.disabled=false;btn.textContent='▶ Play';
+}
+
+// ── GRAPHICAL ──
+let lastGfx=null;
+function gfxUpdate(){
+  const targets=getTgts('gfx');
+  const hr=parseFloat(document.getElementById('g-hr').value);
+  const R=parseFloat(document.getElementById('g-R').value);
+  const r=parseFloat(document.getElementById('g-r').value);
+  const hc=parseFloat(document.getElementById('g-hc').value);
+  const bA1=parseInt(document.getElementById('g-bA1').value);
+  const bA3=parseInt(document.getElementById('g-bA3').value);
+  const bA2=parseInt(document.getElementById('g-bA2').value);
+  const bA4=parseInt(document.getElementById('g-bA4').value);
+  const res=graphicalConstruct(targets,hr,R,r,hc,bA1,bA3,bA2,bA4);
+  clrMsg('gfx-msg');
+  if(res.err){
+    showMsg('gfx-msg','e','Construction failed: '+res.err);
+    ['gfx-metrics','gfx-plot','gfx-steps','gfx-anim-wrap'].forEach(id=>document.getElementById(id).style.display='none');
+    lastGfx=null;return;
+  }
+  lastGfx=res;const cl=res.closureErr;
+  if(cl>1)showMsg('gfx-msg','w',`Closure error = ${cl.toFixed(3)}: coupler won't pass accurately through C4. Run Auto-find or adjust sliders.`);
+  showMets('gfx-metrics',[
+    ['Crank |HC─A|',res.rc.toFixed(3)],['Coupler |A─C|',res.r_val.toFixed(3)],
+    ['Coupler |A─B|',res.rab.toFixed(3)],['Rocker |B─O4|',res.rr.toFixed(3)],
+    ['Closure error',cl.toFixed(4)+(cl<0.5?' ✓':' ⚠')]
+  ]);
+  const stepsEl=document.getElementById('gfx-steps');stepsEl.style.display='block';
+  document.getElementById('gfx-steps-body').innerHTML=[
+    "Step 1 — HR is placed on the ⊥-bisector of C1─C3. Any point on this line is equidistant from C1 and C3.",
+    "Step 2 — A1 and A3 are intersections of circle(HR,R) with circles(C1,r) and (C3,r). At distance R from HR and r from Cᵢ.",
+    "Step 3 — HC is on the ⊥-bisector of A1─A3, so |HC─A1|=|HC─A3|=r_crank.",
+    "Step 4 — A2 and A4 are found on the crank circle at distance r from C2 and C4.",
+    "Step 5 — Image points Pᵢ = A1 + R(φ₁−φᵢ)·(HR−Aᵢ) map HR into the body frame of position 1.",
+    "Step 6 — B1 = circumcenter(P1,P2,P3). O4 = circumcenter(B1,B2,B3).",
+    `Closure check — For exact 4-pos synthesis, B4 must lie on the rocker circle. Error here = ${cl.toFixed(4)} units.`
+  ].map(s=>`<p>${s}</p>`).join('');
+  drawGfxStatic(res,targets);
+  document.getElementById('gfx-anim-wrap').style.display='block';
+  document.getElementById('gfx-anim-plot').style.display='none';
+}
+
+function drawGfxStatic(res,targets){
+  const{Cs,As,Bs,HR,HC,O4,P,rc,r_val,rr}=res;
+  const{xc,yc,span}=rangeOf([Cs,As,Bs,[HR],[HC],[O4],...P.map(p=>[p])]);
+  const tr=[];
+  for(const[p1,p2,col] of [[Cs[0],Cs[2],'rgba(255,87,87,.5)'],[As[0],As[2],'rgba(74,158,255,.5)']]) {
+    const{mid,dir}=perpBis(p1,p2),e=span*.9;
+    tr.push({x:[mid.x-e*dir.x,mid.x+e*dir.x],y:[mid.y-e*dir.y,mid.y+e*dir.y],mode:'lines',line:{color:col,width:1.5,dash:'dash'},showlegend:false});
+  }
+  const Rv=vnorm(vsub(As[0],HR));
+  const crHR=circle200(HR.x,HR.y,Rv);
+  tr.push({x:crHR.x,y:crHR.y,mode:'lines',line:{color:'rgba(255,179,64,.4)',width:1,dash:'dot'},name:'Circle(HR,R)'});
+  for(const Ci of[Cs[0],Cs[2]]){const c=circle200(Ci.x,Ci.y,r_val);tr.push({x:c.x,y:c.y,mode:'lines',line:{color:'rgba(255,87,87,.2)',width:.8,dash:'dot'},showlegend:false});}
+  const crc=circle200(HC.x,HC.y,rc),crr=circle200(O4.x,O4.y,rr);
+  tr.push({x:crc.x,y:crc.y,mode:'lines',line:{color:'rgba(29,190,135,.3)',width:1,dash:'dot'},name:'Crank circle'});
+  tr.push({x:crr.x,y:crr.y,mode:'lines',line:{color:'rgba(74,158,255,.3)',width:1,dash:'dot'},name:'Rocker circle'});
+  for(let i=0;i<4;i++){
+    const a=i===0?1:.3,sl=i===0;
+    const[Ai,Bi,Ci]=[As[i],Bs[i],Cs[i]];
+    tr.push({x:[HC.x,Ai.x],y:[HC.y,Ai.y],mode:'lines',line:{color:`rgba(29,190,135,${a})`,width:sl?3:1.5},showlegend:sl,name:'Crank'});
+    tr.push({x:[Ai.x,Ci.x,Bi.x,Ai.x],y:[Ai.y,Ci.y,Bi.y,Ai.y],mode:'lines',fill:'toself',fillcolor:`rgba(157,141,255,${a*.12})`,line:{color:`rgba(157,141,255,${a})`,width:sl?3:1.5},showlegend:sl,name:'Coupler'});
+    tr.push({x:[Bi.x,O4.x],y:[Bi.y,O4.y],mode:'lines',line:{color:`rgba(74,158,255,${a})`,width:sl?3:1.5},showlegend:sl,name:'Rocker'});
+  }
+  P.forEach((Pi,i)=>tr.push({x:[Pi.x],y:[Pi.y],mode:'markers+text',text:[`P${i+1}`],textposition:'top right',marker:{size:7,color:'#ffb340'},showlegend:i===0,name:'Image pts (Pᵢ)'}));
+  As.forEach((Ai,i)=>tr.push({x:[Ai.x],y:[Ai.y],mode:'markers+text',text:[`A${i+1}`],textposition:'bottom left',marker:{size:8,color:'#1dbe87'},showlegend:false}));
+  tr.push({x:Cs.map(c=>c.x),y:Cs.map(c=>c.y),mode:'markers+text',text:['C1','C2','C3','C4'],textposition:'top center',marker:{size:14,color:'#ff5757',symbol:'x',line:{width:3}},name:'Precision pts'});
+  for(const[lbl,pt,clr]of[['HC',HC,'#1dbe87'],['O4',O4,'#4a9eff']])
+    tr.push({x:[pt.x],y:[pt.y],mode:'markers+text',text:[lbl],textposition:'bottom center',marker:{size:16,color:clr,symbol:'triangle-down'},name:lbl});
+  tr.push({x:[HR.x],y:[HR.y],mode:'markers+text',text:['HR'],textposition:'top center',marker:{size:10,color:'#ffb340'},name:'HR'});
+  const el=document.getElementById('gfx-plot');el.style.display='block';
+  const lay=darkLayout({height:580});
+  lay.xaxis.range=[xc-span,xc+span];lay.yaxis.range=[yc-span,yc+span];
+  Plotly.react('gfx-plot',tr,lay,{responsive:true});
+}
+
+function gfxAutoFind(){
+  const btn=document.getElementById('gfx-auto-btn');
+  btn.disabled=true;btn.textContent='⏳ Searching…';
+  clrMsg('gfx-auto-msg');
+  const targets=getTgts('gfx');
+  setTimeout(()=>{
+    const{best,err}=autoFindGraphical(targets);
+    function setSlider(id,val,lblId,mn,mx){
+      const el=document.getElementById(id);
+      el.value=Math.max(mn,Math.min(mx,val));
+      if(lblId)document.getElementById(lblId).textContent=parseFloat(el.value).toFixed(2);
+    }
+    setSlider('g-hr',best.hr,'hr-lbl',-20,20);
+    setSlider('g-R',best.R,'R-lbl',.5,35);
+    setSlider('g-r',best.r,'r-lbl',.1,20);
+    setSlider('g-hc',best.hc,'hc-lbl',-20,20);
+    document.getElementById('g-bA1').value=best.br[0];
+    document.getElementById('g-bA3').value=best.br[1];
+    document.getElementById('g-bA2').value=best.br[2];
+    document.getElementById('g-bA4').value=best.br[3];
+    document.getElementById('gfx-auto-msg').innerHTML=
+      `<div class="msg msg-ok">Found parameters with closure error = ${err.toFixed(4)}. Sliders updated — adjust freely to explore.</div>`;
+    gfxUpdate();
+    btn.disabled=false;btn.textContent='⚙️ Auto-find Valid Parameters';
+  },20);
+}
+
+function gfxPlay(){
+  if(!lastGfx){showMsg('gfx-msg','e','No valid construction yet.');return;}
+  const btn=document.getElementById('gfx-play-btn');
+  btn.disabled=true;btn.textContent='⏳ Building…';
+  const res=lastGfx,targets=getTgts('gfx');
+  const phi0=atan2(vsub(res.Bs[0],res.As[0]).y,vsub(res.Bs[0],res.As[0]).x);
+  const pp={HC:res.HC,O4:res.O4,As:res.As,Bs:res.Bs,
+    rc:res.rc,rr:res.rr,rab:res.rab,phi0,Cb:v(res.r_val,0),B1init:res.Bs[0]};
+  const{frames}=buildFrames(pp,targets,240);
+  if(!frames.length){showMsg('gfx-msg','e','Animation failed — mechanism cannot complete motion.');btn.disabled=false;btn.textContent='▶ Preview Motion';return;}
+  const{xc,yc,span}=rangeOf([targets,res.As,res.Bs,[res.HC],[res.O4]]);
+  const pf=frames.map((f,fi)=>({name:String(fi),data:[
+    {x:[res.HC.x,f.A.x],y:[res.HC.y,f.A.y],mode:'lines',line:{color:'#1dbe87',width:4},name:'Crank'},
+    {x:[f.A.x,f.C.x,f.B.x,f.A.x],y:[f.A.y,f.C.y,f.B.y,f.A.y],mode:'lines',fill:'toself',fillcolor:'rgba(157,141,255,.15)',line:{color:'#9d8dff',width:4},name:'Coupler'},
+    {x:[f.B.x,res.O4.x],y:[f.B.y,res.O4.y],mode:'lines',line:{color:'#4a9eff',width:4},name:'Rocker'},
+    {x:f.tx,y:f.ty,mode:'lines',line:{color:'rgba(255,179,64,.9)',width:2},name:'Trace'},
+    {x:targets.map(t=>t.x),y:targets.map(t=>t.y),mode:'markers+text',text:['C1','C2','C3','C4'],textposition:'top center',marker:{size:13,color:'#ff5757',symbol:'x',line:{width:3}},name:'Precision pts'},
+    {x:[f.A.x,f.B.x,f.C.x],y:[f.A.y,f.B.y,f.C.y],mode:'markers+text',text:['A','B','C'],textposition:'top center',marker:{size:9,color:['#1dbe87','#4a9eff','#ff5757']},showlegend:false},
+  ]}));
+  const el=document.getElementById('gfx-anim-plot');el.style.display='block';
+  const lay=darkLayout({height:600,
+    xaxis:{gridcolor:'#232b3e',zerolinecolor:'#2d3750',scaleanchor:'y',scaleratio:1,range:[xc-span,xc+span]},
+    yaxis:{gridcolor:'#232b3e',zerolinecolor:'#2d3750',range:[yc-span,yc+span]},
+    updatemenus:[{type:'buttons',showactive:false,y:1.08,x:.5,xanchor:'center',buttons:[
+      {label:'▶ Play',method:'animate',args:[null,{frame:{duration:20,redraw:true},fromcurrent:true,mode:'immediate'}]},
+      {label:'⏸ Pause',method:'animate',args:[[null],{frame:{duration:0,redraw:false},mode:'immediate'}]}
+    ]}],
+    sliders:[{steps:pf.map((_,i)=>({method:'animate',args:[[String(i)],{mode:'immediate',frame:{duration:0,redraw:true}}],label:''})),transition:{duration:0},x:.05,y:0,len:.9,currentvalue:{visible:false}}]
+  });
+  Plotly.react('gfx-anim-plot',pf[0].data,lay,{responsive:true});
+  Plotly.addFrames('gfx-anim-plot',pf);
+  btn.disabled=false;btn.textContent='▶ Preview Motion';
+}
+
+window.addEventListener('load',()=>setTimeout(gfxUpdate,100));
+</script>
+</body>
+</html>
